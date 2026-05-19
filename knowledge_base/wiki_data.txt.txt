@@ -1,0 +1,22 @@
+[주제: Rocky Linux 가상머신 환경 및 JDK 설치]
+멀티 노드 카프카 클러스터를 구축하기 위해 Rocky Linux 환경을 사용한다. 카프카와 주키퍼는 자바 기반으로 동작하므로 호스트명(Host) 설정 후 반드시 OpenJDK 11 버전을 설치해야 한다. 설치 명령어는 sudo dnf install java-11-openjdk-devel -y이며, 설치 완료 후 java -version과 javac -version 명령어를 통해 자바가 올바르게 설치되었는지 확인한다.
+
+[주제: VirtualBox 멀티 노드 호스트 파일(Hosts) 및 네트워크 설정]
+가상머신 3개(kopo01, kopo02, kopo03)가 서로의 호스트명으로 통신할 수 있도록 /etc/hosts 파일을 수정해야 한다. 각 가상머신의 터미널에서 sudo vi /etc/hosts 명령어로 파일을 열고, 각 노드의 IP 주소와 대칭되는 호스트명(예: 192.168.56.101 kopo01, 192.168.56.102 kopo02, 192.168.56.103 kopo03)을 등록해 주어야 한다. 이 설정이 끝나면 ping kopo02와 같이 호스트명으로 네트워크 핑이 정상적으로 가는지 테스트한다.
+
+[주제: Apache Kafka 및 Zookeeper 다운로드와 환경 변수 설정]
+카프카 공식 홈페이지에서 다운로드 링크를 복사한 후, 리눅스 터미널에서 wget 명령어를 이용해 카프카 타르볼 파일(kafka_2.13-3.6.1.tgz)을 다운로드한다. 다운로드가 완료되면 tar -zxvf 명령어로 압축을 해제하고 /opt/ 경로로 이동시킨다. 이후 사용자의 홈 디렉토리에 있는 .bashrc 또는 .bash_profile 파일을 수정하여 KAFKA_HOME 경로를 추가하고 PATH 환경 변수에 $KAFKA_HOME/bin을 등록해야 어느 경로에서나 카프카 명령어를 실행할 수 있다. 변경 후에는 source ~/.bashrc를 잊지 말고 실행한다.
+
+[주제: Zookeeper 분산 모드 설정 및 myid 세팅]
+3개의 노드에서 주키퍼를 앙상블(클러스터)로 묶기 위해 config/zookeeper.properties 파일을 수정해야 한다. 데이터 디렉토리 경로(dataDir=/opt/zookeeper-data)를 지정하고, 파일 하단에 server.1=kopo01:2888:3888, server.2=kopo02:2888:3888, server.3=kopo03:2888:3888 설정을 추가한다. 또한, 지정한 dataDir 경로에 myid라는 파일을 각각 생성하고, kopo01에는 1, kopo02에는 2, kopo03에는 3이라는 숫자를 적어 넣어 각 주키퍼 서버의 고유 ID를 부여해야 한다.
+
+[주제: Kafka 클러스터 개별 노드 설정 (server.properties)]
+각 가상머신 노드의 config/server.properties 파일은 반드시 고유하게 설정되어야 클러스터가 맺어진다.
+
+broker.id 설정: kopo01은 1, kopo02는 2, kopo03은 3으로 겹치지 않게 지정한다.
+
+listeners 및 advertised.listeners 설정: 각 노드의 자신의 IP와 포트를 바인딩한다. (예: kopo01의 경우 PLAINTEXT://kopo01:9092)
+
+zookeeper.connect 설정: 주키퍼 클러스터 주소를 모두 적어준다. (kopo01:2181,kopo02:2181,kopo03:2181)
+
+log.dirs 설정: 카프카의 메시지 로그가 저장될 절대 경로를 지정한다.
